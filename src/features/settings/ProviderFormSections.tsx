@@ -1,27 +1,162 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
 import Cloud from "lucide-react/dist/esm/icons/cloud";
 import Eye from "lucide-react/dist/esm/icons/eye";
 import EyeOff from "lucide-react/dist/esm/icons/eye-off";
+import ExternalLink from "lucide-react/dist/esm/icons/external-link";
 import Globe from "lucide-react/dist/esm/icons/globe";
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw";
+import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/base/input/input";
 import { TextArea } from "@/components/base/input/textarea";
 import { EngineIcon } from "@/components/foundations/icons/engine-icon";
+import { openExternal } from "@/lib/platform";
 import { cx } from "@/utils/cx";
 import type { EngineId } from "./providers";
 import {
   CLAUDE_MODEL_SLOTS,
+  DAYUE_API_KEYS_URL,
+  RUYUAN_ANTHROPIC_BASE_URL,
+  RUYUAN_OPENAI_BASE_URL,
   isOfficialAnthropicEndpoint,
   type ClaudeModelSlot,
   type ProviderPreset,
 } from "./providerPresets";
 import type { ProviderForm } from "./useProviderForm";
-
-const FETCH_DATALIST_ID = "cli-provider-fetched-models";
-
 const slotLabelKey = (slot: ClaudeModelSlot) =>
   `settings.cli${slot.charAt(0).toUpperCase()}${slot.slice(1)}Model`;
+
+function isRuyuanProvider(engine: EngineId, form: ProviderForm): boolean {
+  const baseUrl = engine === "codex" ? form.value.configToml : form.value.baseUrl;
+  return (
+    form.matchedPreset?.name === "如愿AI" ||
+    form.value.name.trim() === "如愿AI" ||
+    baseUrl.includes(RUYUAN_OPENAI_BASE_URL) ||
+    baseUrl.includes(RUYUAN_ANTHROPIC_BASE_URL)
+  );
+}
+
+function RuyuanApiKeyButton() {
+  const { t } = useTranslation();
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="xs"
+      leadingIcon={ExternalLink}
+      className="text-text-secondary hover:text-text-primary"
+      onClick={() => openExternal(DAYUE_API_KEYS_URL)}
+    >
+      {t("settings.cliGetRuyuanApiKey")}
+    </Button>
+  );
+}
+
+/** Friendly API form used by the RuYuanAI hub. The underlying CLI-specific
+ * TOML/JSON is generated on submit, so regular users never need to edit code. */
+export function RuyuanSimpleProviderFields({
+  engine: _engine,
+  form,
+}: {
+  engine: EngineId;
+  form: ProviderForm;
+}) {
+  const { t } = useTranslation();
+  const [showKey, setShowKey] = useState(false);
+  const { value, patch } = form;
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Input
+          label={t("settings.cliName")}
+          isRequired
+          size="small"
+          placeholder={t("settings.cliNamePlaceholder")}
+          value={value.name}
+          onChange={(name) => patch({ name })}
+          autoFocus
+        />
+        <Input
+          label={t("settings.cliRemark")}
+          size="small"
+          placeholder={t("settings.cliRemarkPlaceholder")}
+          value={value.remark}
+          onChange={(remark) => patch({ remark })}
+        />
+        <Input
+          label={t("settings.cliBaseUrl")}
+          isRequired
+          size="small"
+          placeholder="https://…"
+          value={value.baseUrl}
+          onChange={(baseUrl) => patch({ baseUrl })}
+        />
+        <div className="relative flex flex-col gap-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-body-medium text-text-primary">
+              {t("settings.cliApiKey")}
+              <span aria-hidden="true" className="text-text-error-primary">*</span>
+            </span>
+            <RuyuanApiKeyButton />
+          </div>
+          <Input
+            aria-label={t("settings.cliApiKey")}
+            isRequired
+            size="small"
+            type={showKey ? "text" : "password"}
+            placeholder="sk-..."
+            value={value.apiKey}
+            onChange={(apiKey) => patch({ apiKey })}
+            fieldClassName="pr-8"
+          />
+          <button
+            type="button"
+            aria-label={showKey ? t("settings.cliHideApiKey") : t("settings.cliShowApiKey")}
+            onClick={() => setShowKey((s) => !s)}
+            className="absolute right-2 bottom-1.5 flex size-5 items-center justify-center rounded text-foreground-icon-tertiary hover:text-foreground-icon-primary"
+          >
+            {showKey ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+          </button>
+        </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border-button-default bg-background-secondary-default p-2">
+          <TestConnectionControl
+            testing={form.testing}
+            error={form.testError}
+            success={form.testSuccess}
+            disabled={!value.baseUrl.trim() || !value.apiKey.trim()}
+            onTest={() => void form.handleTestConnection()}
+          />
+          <FetchModelsControl
+            fetching={form.fetching}
+            error={form.fetchError}
+            count={form.fetchedModels.length}
+            disabled={!value.baseUrl.trim() || !value.apiKey.trim()}
+            onFetch={() => void form.handleFetchModels()}
+          />
+        </div>
+        <FetchedModelInput
+          label={t("settings.cliModel")}
+          placeholder={t("settings.cliModelPlaceholder")}
+          models={form.fetchedModels}
+          value={value.model}
+          onChange={(model) => patch({ model })}
+        />
+        {form.fetchedModels.length > 0 && (
+          <p className="text-body-2-regular text-text-tertiary">
+            {t("settings.cliSelectFetchedModel")}
+          </p>
+        )}
+      </div>
+      <p className="text-body-2-regular text-text-tertiary">
+        {t("settings.ruyuanSimpleFormHint")}
+      </p>
+    </div>
+  );
+}
 
 /** Brand mark for a preset button: explicit per-preset assets keep relay
  *  providers distinct from the model they happen to serve by default. */
@@ -152,8 +287,7 @@ function ProxyPresetSection({
   );
 }
 
-/** 拉取模型 button plus its result/error readout; the fetched ids feed the
- *  shared datalist behind the model inputs. */
+/** 拉取模型 action plus its result/error readout. */
 function FetchModelsControl({
   fetching,
   error,
@@ -169,15 +303,17 @@ function FetchModelsControl({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center gap-2">
-      <button
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
         type="button"
+        variant="primary"
+        size="small"
+        leadingIcon={RefreshCw}
         onClick={onFetch}
         disabled={fetching || disabled}
-        className="shrink-0 rounded-lg border border-border-button-default px-2 py-0.5 text-body-2-medium text-text-secondary transition-colors hover:bg-background-secondary-hover disabled:opacity-50"
       >
         {fetching ? t("settings.cliFetchModelsLoading") : t("settings.cliFetchModels")}
-      </button>
+      </Button>
       {error ? (
         <span className="text-body-2-regular text-text-error-primary">{error}</span>
       ) : count > 0 ? (
@@ -185,6 +321,159 @@ function FetchModelsControl({
           {t("settings.cliFetchModelsCount", { count })}
         </span>
       ) : null}
+    </div>
+  );
+}
+
+function TestConnectionControl({
+  testing,
+  error,
+  success,
+  disabled,
+  onTest,
+}: {
+  testing: boolean;
+  error: string;
+  success: string;
+  disabled: boolean;
+  onTest: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
+        type="button"
+        variant="secondary"
+        size="small"
+        leadingIcon={CheckCircle2}
+        onClick={onTest}
+        disabled={testing || disabled}
+      >
+        {testing ? t("settings.cliTestConnectionLoading") : t("settings.cliTestConnection")}
+      </Button>
+      {error ? (
+        <span className="text-body-2-regular text-text-error-primary">{error}</span>
+      ) : success ? (
+        <span className="text-body-2-regular text-notification-success-foreground">{success}</span>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * A real in-app model picker instead of a native <datalist>.
+ *
+ * WebView2 renders datalist suggestions inconsistently, and the native arrow
+ * can appear without opening a menu. This picker keeps the field editable for
+ * custom model IDs while making the fetched list explicit and clickable.
+ */
+function FetchedModelInput({
+  label,
+  placeholder,
+  models,
+  value,
+  onChange,
+}: {
+  label: string;
+  placeholder?: string;
+  models: string[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [filtering, setFiltering] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () => document.removeEventListener("pointerdown", handlePointerDown, true);
+  }, [open]);
+
+  const filteredModels = filtering
+    ? models.filter((model) => model.toLowerCase().includes(value.trim().toLowerCase()))
+    : models;
+
+  return (
+    <div ref={rootRef} className="relative">
+      <Input
+        ref={inputRef}
+        label={label}
+        size="small"
+        placeholder={placeholder}
+        value={value}
+        onFocus={() => {
+          if (models.length > 0) {
+            setFiltering(false);
+            setOpen(true);
+          }
+        }}
+        onChange={(nextValue) => {
+          onChange(nextValue);
+          setFiltering(true);
+          if (models.length > 0) setOpen(true);
+        }}
+        fieldClassName="pr-10"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      />
+      {models.length > 0 && (
+        <button
+          type="button"
+          aria-label={open ? t("settings.cliCloseModelList") : t("settings.cliOpenModelList")}
+          aria-expanded={open}
+          onPointerDown={(event) => event.preventDefault()}
+          onClick={() => {
+            setFiltering(false);
+            setOpen((current) => !current);
+          }}
+          className="absolute right-2 top-[1.75rem] flex size-6 items-center justify-center rounded-md text-foreground-icon-secondary transition-colors hover:bg-background-secondary-hover hover:text-foreground-icon-primary"
+        >
+          <ChevronDown className={cx("size-4 transition-transform", open && "rotate-180")} aria-hidden />
+        </button>
+      )}
+      {open && models.length > 0 && (
+        <div
+          role="listbox"
+          aria-label={label}
+          className="absolute bottom-full left-0 right-0 z-50 mb-1 max-h-64 overflow-y-auto rounded-xl border border-border-button-default bg-background-primary-default p-1 shadow-lg"
+        >
+          <div className="px-3 py-2 text-body-2-regular text-text-tertiary">
+            {t("settings.cliFetchedModelsMenuHint", { count: models.length })}
+          </div>
+          {filteredModels.length > 0 ? (
+            filteredModels.map((model) => (
+              <button
+                key={model}
+                type="button"
+                role="option"
+                aria-selected={model === value}
+                onPointerDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onChange(model);
+                  setFiltering(false);
+                  setOpen(false);
+                }}
+                className={cx(
+                  "flex w-full items-center rounded-lg px-3 py-2 text-left text-body-2-regular text-text-primary transition-colors hover:bg-background-secondary-hover",
+                  model === value && "bg-background-secondary-default font-medium",
+                )}
+              >
+                <span className="truncate">{model}</span>
+              </button>
+            ))
+          ) : (
+            <div className="px-3 py-2 text-body-2-regular text-text-tertiary">
+              {t("settings.cliFetchedModelsNoMatch")}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -237,6 +526,7 @@ export function ProviderBasicFields({
   const isCodex = engine === "codex";
   const [showKey, setShowKey] = useState(false);
   const { value, patch } = form;
+  const showRuyuanKeyLink = !form.official && isRuyuanProvider(engine, form);
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <Input
@@ -270,9 +560,16 @@ export function ProviderBasicFields({
         />
       )}
       {!isCodex && (
-        <div className="relative">
+        <div className="relative flex flex-col gap-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-body-medium text-text-primary">
+              {t("settings.cliApiKey")}
+              <span aria-hidden="true" className="text-text-error-primary">*</span>
+            </span>
+            {showRuyuanKeyLink && <RuyuanApiKeyButton />}
+          </div>
           <Input
-            label={t("settings.cliApiKey")}
+            aria-label={t("settings.cliApiKey")}
             isRequired
             size="small"
             type={showKey ? "text" : "password"}
@@ -337,19 +634,13 @@ export function ClaudeFormSections({
             onFetch={() => void form.handleFetchModels()}
           />
         </div>
-        <datalist id={FETCH_DATALIST_ID}>
-          {form.fetchedModels.map((model) => (
-            <option key={model} value={model} />
-          ))}
-        </datalist>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {CLAUDE_MODEL_SLOTS.map(({ slot, envKey }) => (
-            <Input
+            <FetchedModelInput
               key={slot}
               label={t(slotLabelKey(slot))}
-              size="small"
-              list={FETCH_DATALIST_ID}
               placeholder={t(`${slotLabelKey(slot)}Placeholder`)}
+              models={form.fetchedModels}
               value={slots[slot]}
               onChange={(model) => {
                 setSlots((s) => ({ ...s, [slot]: model }));
@@ -428,15 +719,9 @@ export function FlatModelSection({
         disabled={!form.value.baseUrl.trim()}
         onFetch={() => void form.handleFetchModels()}
       />
-      <datalist id={FETCH_DATALIST_ID}>
-        {form.fetchedModels.map((model) => (
-          <option key={model} value={model} />
-        ))}
-      </datalist>
-      <Input
+      <FetchedModelInput
         label={t("settings.cliModel")}
-        size="small"
-        list={FETCH_DATALIST_ID}
+        models={form.fetchedModels}
         value={form.value.model}
         onChange={(model) => form.patch({ model })}
       />
@@ -469,9 +754,12 @@ export function CodexFormSections({
       />
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-body-medium text-text-primary">
-            {t("settings.cliAuthJson")}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-body-medium text-text-primary">
+              {t("settings.cliAuthJson")}
+            </p>
+            {isRuyuanProvider(engine, form) && <RuyuanApiKeyButton />}
+          </div>
           <button
             type="button"
             onClick={form.handleFormatAuthJson}

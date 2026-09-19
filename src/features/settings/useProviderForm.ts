@@ -9,6 +9,8 @@ import {
   OFFICIAL_CODEX_BASE_URL,
   OFFICIAL_CODEX_CONFIG_TOML,
   PRESETS,
+  RUYUAN_ANTHROPIC_BASE_URL,
+  RUYUAN_OPENAI_BASE_URL,
   authJsonApiKey,
   buildCodexConfigToml,
   claudeTemplateJson,
@@ -36,7 +38,11 @@ const EMPTY_SLOTS: Record<ClaudeModelSlot, string> = { fable: "", sonnet: "", op
  *  stored settingsConfig (edit), the flat fields (legacy channels), or the
  *  official-direct template (add); codex seeds config.toml/auth.json the
  *  same way. */
-function initialForm(engine: EngineId, initial?: ProviderFormValue): ProviderFormValue {
+function initialForm(
+  engine: EngineId,
+  initial?: ProviderFormValue,
+  simpleMode = false,
+): ProviderFormValue {
   const base: ProviderFormValue = { ...EMPTY_FORM, ...initial };
   if (engine === "claude") {
     if (base.settingsJson.trim()) return base;
@@ -49,16 +55,29 @@ function initialForm(engine: EngineId, initial?: ProviderFormValue): ProviderFor
         settingsJson: claudeTemplateJson(base.baseUrl.trim(), base.apiKey.trim(), extra),
       };
     }
-    // New channel: official direct selected, matching the reference dialog.
+    // RuYuanAI-branded builds default new channels to RuYuanAI, so users only paste their key.
     return {
       ...base,
-      baseUrl: OFFICIAL_BASE_URL,
-      settingsJson: claudeTemplateJson(OFFICIAL_BASE_URL, ""),
+      name: "如愿AI",
+      baseUrl: RUYUAN_ANTHROPIC_BASE_URL,
+      settingsJson: claudeTemplateJson(RUYUAN_ANTHROPIC_BASE_URL, "", {
+        ANTHROPIC_DEFAULT_FABLE_MODEL: "claude-sonnet-4-6",
+        ANTHROPIC_DEFAULT_HAIKU_MODEL: "claude-haiku-4-5-20251001",
+        ANTHROPIC_DEFAULT_SONNET_MODEL: "claude-sonnet-4-6",
+        ANTHROPIC_DEFAULT_OPUS_MODEL: "claude-opus-5",
+      }),
     };
   }
   if (engine === "codex") {
     return {
       ...base,
+      ...(simpleMode && !initial
+        ? {
+            name: "如愿AI",
+            baseUrl: RUYUAN_OPENAI_BASE_URL,
+            model: "claude-sonnet-4-6",
+          }
+        : {}),
       configToml: base.configToml.trim()
         ? base.configToml
         : initial
@@ -68,9 +87,26 @@ function initialForm(engine: EngineId, initial?: ProviderFormValue): ProviderFor
               base.model.trim() || "gpt-5.1-codex",
               "chat",
             )
-          : OFFICIAL_CODEX_CONFIG_TOML,
+          : buildCodexConfigToml(
+              "如愿AI",
+              RUYUAN_OPENAI_BASE_URL,
+              "claude-sonnet-4-6",
+              "chat",
+            ),
+      name: initial ? base.name : base.name || "如愿AI",
       authJson: base.authJson.trim() ? base.authJson : DEFAULT_CODEX_AUTH_JSON,
     };
+  }
+  if (!initial) {
+    const ruyuanPreset = (PRESETS[engine] ?? []).find((preset) => preset.name === "如愿AI");
+    if (ruyuanPreset) {
+      return {
+        ...base,
+        name: ruyuanPreset.name,
+        baseUrl: ruyuanPreset.baseUrl,
+        model: ruyuanPreset.model,
+      };
+    }
   }
   return base;
 }
@@ -105,16 +141,20 @@ function slotsFromJson(settingsJson: string): Record<ClaudeModelSlot, string> {
 export function useProviderForm({
   engine,
   initial,
+  simpleMode = false,
   onSubmit,
 }: {
   engine: EngineId;
   initial?: ProviderFormValue;
+  simpleMode?: boolean;
   onSubmit: (value: ProviderFormValue) => void;
 }): ProviderForm {
   const { t } = useTranslation();
   const isClaude = engine === "claude";
   const isCodex = engine === "codex";
-  const [value, setValue] = useState<ProviderFormValue>(() => initialForm(engine, initial));
+  const [value, setValue] = useState<ProviderFormValue>(() =>
+    initialForm(engine, initial, simpleMode),
+  );
   // Model slots start empty on add (the template's env carries the defaults,
   // same as the reference); on edit they mirror the stored settings.json.
   const [slots, setSlots] = useState<Record<ClaudeModelSlot, string>>(() =>
@@ -125,6 +165,9 @@ export function useProviderForm({
   const [fetchedModels, setFetchedModels] = useState<string[]>([]);
   const [fetching, setFetching] = useState(false);
   const [fetchError, setFetchError] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [testError, setTestError] = useState("");
+  const [testSuccess, setTestSuccess] = useState("");
 
   const presets = PRESETS[engine] ?? [];
   const patch = (p: Partial<ProviderFormValue>) => setValue((v) => ({ ...v, ...p }));
@@ -276,19 +319,27 @@ export function useProviderForm({
   function resetFetch() {
     setFetchedModels([]);
     setFetchError("");
+    setTestError("");
+    setTestSuccess("");
   }
 
+  const requestModelList = async () => {
+    // In the friendly RuYuanAI form the user edits the flat URL/key fields.
+    // Only the advanced Codex editor needs values parsed from TOML/auth.json.
+    const baseUrl = simpleMode || !isCodex ? value.baseUrl.trim() : tomlBaseUrl(value.configToml);
+    const apiKey = simpleMode || !isCodex ? value.apiKey.trim() : authJsonApiKey(value.authJson);
+    if (!baseUrl) throw new Error(t("settings.cliFetchModelsNeedUrl"));
+    if (!apiKey) throw new Error(t("settings.cliFetchModelsNeedApiKey"));
+    return ipc.fetchProviderModels(baseUrl, apiKey);
+  };
+
   const handleFetchModels = async () => {
-    const baseUrl = isCodex ? tomlBaseUrl(value.configToml) : value.baseUrl.trim();
-    const apiKey = isCodex ? authJsonApiKey(value.authJson) : value.apiKey;
-    if (!baseUrl) {
-      setFetchError(t("settings.cliFetchModelsNeedUrl"));
-      return;
-    }
     setFetching(true);
     setFetchError("");
+    setTestError("");
+    setTestSuccess("");
     try {
-      const result = await ipc.fetchProviderModels(baseUrl, apiKey);
+      const result = await requestModelList();
       setFetchedModels(result.models);
       if (result.models.length === 0) setFetchError(t("settings.cliFetchModelsEmpty"));
     } catch (e) {
@@ -296,6 +347,30 @@ export function useProviderForm({
       setFetchError(message || t("settings.cliFetchModelsError"));
     } finally {
       setFetching(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setTesting(true);
+    setTestError("");
+    setTestSuccess("");
+    setFetchError("");
+    try {
+      const result = await requestModelList();
+      // A successful model request proves both the URL and API key work. Keep
+      // the result available so the user can immediately choose a model.
+      setFetchedModels(result.models);
+      setTestSuccess(
+        result.models.length > 0
+          ? t("settings.cliTestConnectionSuccessWithModels", { count: result.models.length })
+          : t("settings.cliTestConnectionSuccess"),
+      );
+      if (result.models.length === 0) setFetchError(t("settings.cliFetchModelsEmpty"));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      setTestError(message || t("settings.cliTestConnectionError"));
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -329,14 +404,62 @@ export function useProviderForm({
       return false;
     }
   })();
-  const valid =
-    value.name.trim() !== "" &&
-    (isCodex ? value.configToml.trim() !== "" : value.baseUrl.trim() !== "") &&
-    jsonValid &&
-    authValid;
+  const valid = simpleMode
+    ? value.name.trim() !== "" && value.baseUrl.trim() !== "" && value.apiKey.trim() !== ""
+    : value.name.trim() !== "" &&
+      (isCodex ? value.configToml.trim() !== "" : value.baseUrl.trim() !== "") &&
+      jsonValid &&
+      authValid;
 
   const submit = () => {
     if (!valid) return;
+    if (simpleMode) {
+      if (isCodex) {
+        onSubmit({
+          ...value,
+          configToml: buildCodexConfigToml(
+            value.name.trim(),
+            value.baseUrl.trim(),
+            value.model.trim() || "claude-sonnet-4-6",
+            "chat",
+          ),
+          authJson: JSON.stringify({ OPENAI_API_KEY: value.apiKey.trim() }, null, 2),
+        });
+        return;
+      }
+      if (isClaude) {
+        let settings: Record<string, unknown> = {};
+        try {
+          const parsed = JSON.parse(value.settingsJson || "{}");
+          if (parsed && typeof parsed === "object") settings = parsed as Record<string, unknown>;
+        } catch {
+          // The simple form never exposes JSON. Fall back to a fresh object if
+          // an older stored value happens to be malformed.
+        }
+        const previousEnv =
+          settings.env && typeof settings.env === "object"
+            ? (settings.env as Record<string, unknown>)
+            : {};
+        const env: Record<string, unknown> = {
+          ...previousEnv,
+          ANTHROPIC_BASE_URL: value.baseUrl.trim(),
+          ANTHROPIC_AUTH_TOKEN: value.apiKey.trim(),
+        };
+        if (value.model.trim()) {
+          env.ANTHROPIC_DEFAULT_FABLE_MODEL = value.model.trim();
+          env.ANTHROPIC_DEFAULT_HAIKU_MODEL = value.model.trim();
+          env.ANTHROPIC_DEFAULT_SONNET_MODEL = value.model.trim();
+          env.ANTHROPIC_DEFAULT_OPUS_MODEL = value.model.trim();
+        }
+        onSubmit({
+          ...value,
+          settingsJson: JSON.stringify({ ...settings, env }, null, 2),
+        });
+        return;
+      }
+      onSubmit(value);
+      return;
+    }
     if (isCodex) {
       // Flat mirrors for the row display and model picker; the backend
       // applies the TOML/auth.json themselves.
@@ -362,6 +485,9 @@ export function useProviderForm({
     fetchedModels,
     fetching,
     fetchError,
+    testing,
+    testError,
+    testSuccess,
     presets,
     official,
     matchedPreset,
@@ -376,6 +502,7 @@ export function useProviderForm({
     selectOfficial,
     selectCustom,
     handleFetchModels,
+    handleTestConnection,
     submit,
   };
 }
@@ -393,6 +520,9 @@ export interface ProviderForm {
   fetchedModels: string[];
   fetching: boolean;
   fetchError: string;
+  testing: boolean;
+  testError: string;
+  testSuccess: string;
   presets: ProviderPreset[];
   official: boolean;
   matchedPreset: ProviderPreset | undefined;
@@ -407,5 +537,6 @@ export interface ProviderForm {
   selectOfficial: () => void;
   selectCustom: () => void;
   handleFetchModels: () => Promise<void>;
+  handleTestConnection: () => Promise<void>;
   submit: () => void;
 }

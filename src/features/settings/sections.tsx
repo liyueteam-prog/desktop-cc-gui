@@ -17,6 +17,8 @@ import { ProxySection } from "./ProxySection";
 import { WorkspacesSection } from "./WorkspacesSection";
 import { AgentsPromptsSection } from "./agents-prompts/AgentsPromptsSection";
 import { CliConfigSection } from "./CliConfigSection";
+import { RuyuanCliSection } from "./RuyuanCliSection";
+import ruyuanIcon from "@/assets/model-icons/ruyuan.svg";
 import { AboutSection } from "./AboutSection";
 import { WebAccessSection } from "./WebAccessSection";
 import { UsageSection } from "./UsageSection";
@@ -43,6 +45,10 @@ const engineNavIcon = (engine: EngineId): SettingsNavItem["icon"] => {
   );
   return EngineNavIcon;
 };
+
+const RuyuanNavIcon = ({ className }: { className?: string }) => (
+  <img src={ruyuanIcon} alt="" className={cx("size-5 object-contain", className)} aria-hidden />
+);
 
 settingsRegistry.register({
   id: "general",
@@ -116,6 +122,16 @@ settingsRegistry.register({
   order: 4,
   component: AboutSection,
 });
+settingsRegistry.register({
+  id: "ruyuan-cli",
+  key: "ruyuan-cli",
+  label: () => i18n.t("settings.ruyuanCliNav"),
+  icon: RuyuanNavIcon,
+  group: "cli",
+  order: -1,
+  component: RuyuanCliSection,
+});
+
 ENGINE_IDS.forEach((engine, index) => {
   settingsRegistry.register({
     id: `cli:${engine}`,

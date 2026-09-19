@@ -35,10 +35,14 @@ fn model_list_candidates(base_url: &str) -> Vec<String> {
     }
 
     let mut candidates = Vec::new();
-    push_unique_candidate(&mut candidates, format!("{base}/v1/models"));
 
+    // A base URL that already ends in /v1 should probe /v1/models directly.
+    // Trying /v1/v1/models first makes otherwise healthy providers look slow
+    // and is rejected by many gateways.
     if base.ends_with("/v1") {
         push_unique_candidate(&mut candidates, format!("{base}/models"));
+    } else {
+        push_unique_candidate(&mut candidates, format!("{base}/v1/models"));
     }
 
     if let Some(stripped) = base.strip_suffix("/anthropic") {
@@ -187,10 +191,7 @@ mod tests {
     fn candidates_trailing_v1() {
         assert_eq!(
             model_list_candidates("https://api.example.com/v1"),
-            vec![
-                "https://api.example.com/v1/v1/models",
-                "https://api.example.com/v1/models",
-            ]
+            vec!["https://api.example.com/v1/models"]
         );
     }
 

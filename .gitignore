@@ -34,3 +34,6 @@ skills-lock.json
 boardui.dev.env
 CLAUDE.md
 .codegraph
+# Local release artifacts
+/outputs/
+/.tmp-ruyuan-icons/

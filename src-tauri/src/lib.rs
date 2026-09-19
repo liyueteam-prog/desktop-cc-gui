@@ -188,7 +188,7 @@ pub fn run() {
             let settings = settings::read_settings().unwrap_or_default();
             let mut window_builder =
                 tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("index.html".into()))
-                    .title("CC GUI")
+                    .title("如愿AI")
                     .inner_size(1400.0, 900.0)
                     .min_inner_size(900.0, 600.0);
             #[cfg(target_os = "macos")]

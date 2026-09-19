@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import ExternalLink from "lucide-react/dist/esm/icons/external-link";
 import Plus from "lucide-react/dist/esm/icons/plus";
 import { Button } from "@/components/base/buttons/button";
 import {
@@ -7,6 +9,7 @@ import {
 } from "@/components/application/settings/settings-rows";
 import { WorkspaceSortableList } from "@/components/application/ai-chat/workspace-sortable-list";
 import { ipc } from "@/lib/ipc";
+import { openExternal } from "@/lib/platform";
 import { PSEUDO_LOCAL, type EngineId } from "./providers";
 import { ChannelRow } from "./CliChannelRow";
 import { CliEngineCard } from "./CliEngineCard";
@@ -14,11 +17,57 @@ import { CliEngineSettingsCard } from "./CliEngineSettingsCard";
 import { CliImportMenu } from "./CliImportMenu";
 import { CliSyncBanner } from "./CliSyncBanner";
 import { DshHostSection } from "./DshHostSection";
+import { DAYUE_API_KEYS_URL, DAYUE_HOME_URL } from "./providerPresets";
 import { PiFamilyAuthSection } from "./PiFamilyAuthSection";
 import type { CliConfigState } from "./useCliConfig";
 
 /** Engines cc-switch manages — the import dropdown only shows on these tabs. */
 const CCS_IMPORT_ENGINES: readonly EngineId[] = ["claude", "codex", "grok"];
+const RUYUAN_QUICKSTART_ENGINES: readonly EngineId[] = ["claude", "codex", "kimi", "grok"];
+
+function RuyuanQuickStartCard({ onAdd }: { onAdd: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="rounded-2xl border border-border-button-default bg-background-secondary-default p-4 shadow-xs">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0 flex-1">
+          <p className="text-body-medium text-text-primary">
+            {t("settings.cliRuyuanQuickStartTitle")}
+          </p>
+          <p className="mt-1 text-body-2-regular text-text-secondary">
+            {t("settings.cliRuyuanQuickStartDesc")}
+          </p>
+          <ol className="mt-3 list-decimal space-y-1 pl-5 text-body-2-regular text-text-secondary">
+            <li>{t("settings.cliRuyuanQuickStartStep1")}</li>
+            <li>{t("settings.cliRuyuanQuickStartStep2")}</li>
+            <li>{t("settings.cliRuyuanQuickStartStep3")}</li>
+          </ol>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2 md:justify-end">
+          <Button
+            variant="secondary"
+            size="small"
+            trailingIcon={ExternalLink}
+            onClick={() => openExternal(DAYUE_HOME_URL)}
+          >
+            {t("settings.cliRuyuanSignIn")}
+          </Button>
+          <Button
+            variant="secondary"
+            size="small"
+            trailingIcon={ExternalLink}
+            onClick={() => openExternal(DAYUE_API_KEYS_URL)}
+          >
+            {t("settings.cliGetRuyuanApiKey")}
+          </Button>
+          <Button size="small" leadingIcon={Plus} onClick={onAdd}>
+            {t("settings.cliRuyuanAddChannel")}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * The loaded CLI config UI:
@@ -70,6 +119,10 @@ export function CliConfigBody({ cli }: { cli: CliConfigState }) {
         busy={busy}
         onToggleEnabled={(on) => void mutate(() => ipc.setEngineEnabled(engine, on))}
       />
+
+      {entries.length === 0 && RUYUAN_QUICKSTART_ENGINES.includes(engine) && (
+        <RuyuanQuickStartCard onAdd={() => setDialog({})} />
+      )}
 
       <div className="relative flex w-full flex-col gap-6">
         <CliEngineSettingsCard

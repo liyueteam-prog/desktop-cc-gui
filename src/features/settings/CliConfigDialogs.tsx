@@ -10,7 +10,13 @@ import type { CliConfigState } from "./useCliConfig";
 
 /** Add/edit provider dialog; the stored settingsConfig becomes the initial
  *  editor text for claude (settings.json) and codex (config.toml/auth.json). */
-export function CliProviderDialog({ cli }: { cli: CliConfigState }) {
+export function CliProviderDialog({
+  cli,
+  simpleMode = false,
+}: {
+  cli: CliConfigState;
+  simpleMode?: boolean;
+}) {
   const { t, engine, dialog, setDialog, saveProvider } = cli;
   if (!dialog) return null;
   return (
@@ -21,6 +27,7 @@ export function CliProviderDialog({ cli }: { cli: CliConfigState }) {
           ? t("settings.cliDialogEdit")
           : t("settings.cliDialogAddEngine", { name: CLI_DISPLAY_NAMES[engine] })
       }
+      simpleMode={simpleMode}
       initial={
         dialog.entry
           ? {

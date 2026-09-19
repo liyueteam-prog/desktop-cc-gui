@@ -9,6 +9,7 @@ import minimaxIcon from "@lobehub/icons-static-svg/icons/minimax-color.svg";
 import moonshotIcon from "@lobehub/icons-static-svg/icons/moonshot.svg";
 import opencodeIcon from "@lobehub/icons-static-svg/icons/opencode.svg";
 import openrouterIcon from "@lobehub/icons-static-svg/icons/openrouter-color.svg";
+import ruyuanIcon from "@/assets/model-icons/ruyuan.svg";
 import xaiIcon from "@lobehub/icons-static-svg/icons/xai.svg";
 import xiaomimimoIcon from "@lobehub/icons-static-svg/icons/xiaomimimo.svg";
 import zhipuIcon from "@lobehub/icons-static-svg/icons/zhipu-color.svg";
@@ -40,6 +41,13 @@ const DARK_MONO_ICON_CLASS = "dark:invert";
  *  locks API URL to this value, mirroring the reference's 官方直连 preset. */
 export const OFFICIAL_BASE_URL = "https://api.anthropic.com";
 export const OFFICIAL_CODEX_BASE_URL = "https://api.openai.com/v1";
+
+export const DAYUE_HOME_URL = "https://www.dayueai.fun/";
+export const DAYUE_API_KEYS_URL = "https://www.dayueai.fun/keys/?source=ruyuan-desktop";
+/** OpenAI-compatible engines call the /v1 API route; Claude Code uses the
+ *  site root so its Anthropic client appends /v1/messages itself. */
+export const RUYUAN_OPENAI_BASE_URL = "https://www.dayueai.fun/v1";
+export const RUYUAN_ANTHROPIC_BASE_URL = "https://www.dayueai.fun";
 
 /** Model-slot env keys, in the grid's display order. */
 export const CLAUDE_MODEL_SLOTS = [
@@ -170,6 +178,18 @@ export function authJsonApiKey(authJson: string): string {
  *  from CODEX_PROVIDER_PRESETS (wire_api drives the generated config.toml). */
 export const PRESETS: Partial<Record<EngineId, ProviderPreset[]>> = {
   claude: [
+    {
+      name: "如愿AI",
+      baseUrl: RUYUAN_ANTHROPIC_BASE_URL,
+      model: "claude-sonnet-4-6",
+      iconSrc: ruyuanIcon,
+      env: {
+        ANTHROPIC_DEFAULT_FABLE_MODEL: "claude-sonnet-4-6",
+        ANTHROPIC_DEFAULT_HAIKU_MODEL: "claude-haiku-4-5-20251001",
+        ANTHROPIC_DEFAULT_SONNET_MODEL: "claude-sonnet-4-6",
+        ANTHROPIC_DEFAULT_OPUS_MODEL: "claude-opus-5",
+      },
+    },
     {
       name: "智谱GLM",
       baseUrl: "https://open.bigmodel.cn/api/anthropic",
@@ -307,11 +327,16 @@ export const PRESETS: Partial<Record<EngineId, ProviderPreset[]>> = {
     },
   ],
   kimi: [
+    { name: "如愿AI", baseUrl: RUYUAN_OPENAI_BASE_URL, model: "kimi-k3", iconSrc: ruyuanIcon },
     { name: "Kimi Coding", baseUrl: "https://api.kimi.com/coding/v1", model: "kimi-for-coding", iconSrc: kimiIcon, iconClassName: DARK_MONO_ICON_CLASS },
     { name: "Moonshot", baseUrl: "https://api.moonshot.cn/v1", model: "", iconSrc: moonshotIcon, iconClassName: DARK_MONO_ICON_CLASS },
   ],
-  grok: [{ name: "xAI Official", baseUrl: "https://api.x.ai/v1", model: "grok-build", iconSrc: xaiIcon, iconClassName: DARK_MONO_ICON_CLASS }],
+  grok: [
+    { name: "如愿AI", baseUrl: RUYUAN_OPENAI_BASE_URL, model: "grok-build", iconSrc: ruyuanIcon },
+    { name: "xAI Official", baseUrl: "https://api.x.ai/v1", model: "grok-build", iconSrc: xaiIcon, iconClassName: DARK_MONO_ICON_CLASS },
+  ],
   codex: [
+    { name: "如愿AI", baseUrl: RUYUAN_OPENAI_BASE_URL, model: "claude-sonnet-4-6", iconSrc: ruyuanIcon, wireApi: "chat" },
     { name: "Zhipu GLM", baseUrl: "https://open.bigmodel.cn/api/coding/paas/v4", model: "glm-5.2", iconSrc: zhipuIcon, wireApi: "chat" },
     { name: "Kimi", baseUrl: "https://api.moonshot.cn/v1", model: "kimi-k3", iconSrc: kimiIcon, iconClassName: DARK_MONO_ICON_CLASS, wireApi: "chat" },
     { name: "Kimi Coding", baseUrl: "https://api.kimi.com/coding/v1", model: "kimi-k3", iconSrc: kimiIcon, iconClassName: DARK_MONO_ICON_CLASS, wireApi: "chat" },

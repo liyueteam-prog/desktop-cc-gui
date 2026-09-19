@@ -9,6 +9,7 @@ import {
   FlatModelSection,
   ProviderBasicFields,
   ProviderPresetSections,
+  RuyuanSimpleProviderFields,
 } from "./ProviderFormSections";
 import { useProviderForm } from "./useProviderForm";
 
@@ -45,15 +46,23 @@ interface ProviderDialogProps {
   engine: EngineId;
   title: string;
   initial?: ProviderFormValue;
+  simpleMode?: boolean;
   onSubmit: (value: ProviderFormValue) => void;
   onCancel: () => void;
 }
 
 /** Dialog shell: header + form wiring. State/mutations live in
  *  useProviderForm; per-engine field groups live in ProviderFormSections. */
-export function ProviderDialog({ engine, title, initial, onSubmit, onCancel }: ProviderDialogProps) {
+export function ProviderDialog({
+  engine,
+  title,
+  initial,
+  simpleMode = false,
+  onSubmit,
+  onCancel,
+}: ProviderDialogProps) {
   const { t } = useTranslation();
-  const form = useProviderForm({ engine, initial, onSubmit });
+  const form = useProviderForm({ engine, initial, simpleMode, onSubmit });
 
   return (
     <ModalShell
@@ -72,7 +81,7 @@ export function ProviderDialog({ engine, title, initial, onSubmit, onCancel }: P
         </button>
       </div>
       <p className="mt-1.5 text-body-2-regular text-text-secondary">
-        {t("settings.cliDialogNote")}
+        {t(simpleMode ? "settings.ruyuanSimpleDialogNote" : "settings.cliDialogNote")}
       </p>
       <form
         className="mt-5 flex flex-col gap-5"
@@ -81,11 +90,17 @@ export function ProviderDialog({ engine, title, initial, onSubmit, onCancel }: P
           form.submit();
         }}
       >
-        <ProviderPresetSections engine={engine} form={form} />
-        <ProviderBasicFields engine={engine} form={form} />
-        <ClaudeFormSections engine={engine} form={form} />
-        <FlatModelSection engine={engine} form={form} />
-        <CodexFormSections engine={engine} form={form} />
+        {simpleMode ? (
+          <RuyuanSimpleProviderFields engine={engine} form={form} />
+        ) : (
+          <>
+            <ProviderPresetSections engine={engine} form={form} />
+            <ProviderBasicFields engine={engine} form={form} />
+            <ClaudeFormSections engine={engine} form={form} />
+            <FlatModelSection engine={engine} form={form} />
+            <CodexFormSections engine={engine} form={form} />
+          </>
+        )}
 
         <div className="flex justify-end gap-2">
           <Button variant="secondary" size="small" onClick={onCancel}>

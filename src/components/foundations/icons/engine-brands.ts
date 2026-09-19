@@ -2,6 +2,7 @@ import type { EngineIconId } from "./engine-icon";
 
 /** Brand names stay literal in every locale (Claude Code, Codex CLI, …). */
 export const CLI_DISPLAY_NAMES: Record<string, string> = {
+  ruyuan: "如愿AI CLI",
   claude: "Claude Code",
   codex: "Codex CLI",
   grok: "Grok CLI",

@@ -98,7 +98,7 @@ export function useCliConfig(engine: EngineId): CliConfigState {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [engine]);
 
   // Mutations go through one funnel: run → tell the chat tree → re-read.
   // Re-reading after each write keeps the UI on the backend's persisted

@@ -131,8 +131,8 @@ export function SidebarBrandRow() {
   return (
     <div className="flex w-full flex-row items-center justify-between">
       <span className="flex items-center gap-2 px-1">
-        <img src="/app-icon.png" alt="CC GUI" className="size-7 rounded-lg" />
-        <span className="text-headline-medium text-text-primary">CC GUI</span>
+        <img src="/app-icon.png" alt="RuYuanAI" className="size-7 rounded-lg" />
+        <span className="text-headline-medium text-text-primary">RuYuanAI</span>
       </span>
     </div>
   );

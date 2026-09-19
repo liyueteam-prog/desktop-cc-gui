@@ -4,8 +4,8 @@
  * dialog shows both when available, ordered by the active UI language.
  */
 
-/** Repo the dialog's Star banner links to; shared with Settings → About. */
-export const GITHUB_REPO_URL = "https://github.com/zhukunpenglinyutong/desktop-cc-gui";
+/** Official RuYuanAI site opened from the version dialog action. */
+export const GITHUB_REPO_URL = "https://www.dayueai.fun";
 
 export interface ChangelogEntry {
   version: string;
@@ -17,6 +17,38 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG_DATA: ChangelogEntry[] = [
+  {
+    version: "1.0.7",
+    date: "2026-09-19",
+    content: {
+      zh: `🐛 修复
+- 修复拉取模型后模型下拉菜单无法打开的问题
+- 将原生 datalist 替换为应用内模型选择菜单，支持点击展开、搜索过滤和直接选择
+
+✨ 体验优化
+- 「测试连接」和「拉取模型」升级为带图标的大按钮，操作区域更加醒目`,
+      en: `🐛 Fixes
+- Fixed the model dropdown not opening after fetching models
+- Replaced the native datalist with an in-app model picker supporting explicit opening, filtering, and selection
+
+✨ Improvements
+- Made “Test connection” and “Fetch models” more prominent with larger icon buttons`,
+    },
+  },
+  {
+    version: "1.0.6",
+    date: "2026-09-19",
+    content: {
+      zh: `✨ 新功能
+- 如愿AI CLI 简化配置支持「测试连接」和「获取模型」
+- 填写 API Key 后可从兼容 API 自动读取模型列表，并在模型输入框中直接选择
+- Codex / Claude / 其他 CLI 渠道统一复用模型拉取能力，普通用户无需编辑 TOML 或 JSON`,
+      en: `✨ Features
+- RuYuanAI CLI simplified setup now supports “Test connection” and “Fetch models”
+- After entering an API key, compatible APIs can provide their model list for direct selection
+- Codex, Claude, and other CLI channels share the model-fetching flow without requiring TOML or JSON editing`,
+    },
+  },
   {
     version: "1.0.4",
     date: "2026-09-18",

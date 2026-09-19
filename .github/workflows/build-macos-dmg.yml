@@ -1,0 +1,85 @@
+name: Build macOS DMG
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos:
+    name: macOS ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Apple-Silicon
+            runner: macos-15
+            target: aarch64-apple-darwin
+            output_name: RuYuanAI_1.0.7_macOS_AppleSilicon.dmg
+          - name: Intel
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+            output_name: RuYuanAI_1.0.7_macOS_Intel.dmg
+
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "10.13"
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Restore Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+          cache-bin: false
+          shared-key: ruyuanai-1.0.7-${{ matrix.target }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build unsigned DMG
+        run: >-
+          pnpm exec tauri build
+          --target ${{ matrix.target }}
+          --bundles app,dmg
+          --no-sign
+          --ci
+          --config '{"bundle":{"createUpdaterArtifacts":false,"macOS":{"signingIdentity":null}}}'
+
+      - name: Collect DMG
+        shell: bash
+        env:
+          OUTPUT_NAME: ${{ matrix.output_name }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          mkdir -p outputs
+          DMG=$(find "src-tauri/target/${TARGET}/release/bundle/dmg" -maxdepth 1 -type f -name '*.dmg' -print -quit)
+          test -n "$DMG"
+          cp "$DMG" "outputs/${OUTPUT_NAME}"
+          shasum -a 256 "outputs/${OUTPUT_NAME}" | tee "outputs/${OUTPUT_NAME}.sha256"
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: RuYuanAI-1.0.7-macOS-${{ matrix.name }}
+          path: outputs/*
+          if-no-files-found: error
+          retention-days: 14
