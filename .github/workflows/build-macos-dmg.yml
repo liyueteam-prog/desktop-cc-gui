@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - fix/ruyuanai-macos-install
+      - main
     paths:
       - .github/workflows/build-macos-dmg.yml
       - package.json
