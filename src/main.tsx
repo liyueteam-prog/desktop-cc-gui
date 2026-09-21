@@ -52,4 +52,4 @@ window.setTimeout(() => {
         error instanceof Error ? error.message : String(error),
       );
     });
-}, 4500);
+}, 1200);

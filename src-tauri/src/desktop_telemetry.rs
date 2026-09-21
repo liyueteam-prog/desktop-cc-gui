@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-const DESKTOP_TELEMETRY_URL: &str = "https://www.dayueai.fun/api/desktop/events";
+const DESKTOP_TELEMETRY_URLS: [&str; 2] = [
+    "https://www.dayueai.fun/api/desktop/events",
+    "http://103.103.64.187:9900/api/desktop/events",
+];
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -71,20 +74,20 @@ pub(crate) async fn desktop_telemetry_event(payload: DesktopTelemetryInput) -> R
         app_version: env!("CARGO_PKG_VERSION"),
         channel: "desktop-app",
     };
-    let response = reqwest::Client::builder()
+    let client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(4))
         .timeout(Duration::from_secs(8))
         .build()
-        .map_err(|error| format!("desktop telemetry client: {error}"))?
-        .post(DESKTOP_TELEMETRY_URL)
-        .json(&body)
-        .send()
-        .await
-        .map_err(|error| format!("desktop telemetry request: {error}"))?;
-    if !response.status().is_success() {
-        return Err(format!("desktop telemetry HTTP {}", response.status()));
+        .map_err(|error| format!("desktop telemetry client: {error}"))?;
+    let mut errors = Vec::new();
+    for url in DESKTOP_TELEMETRY_URLS {
+        match client.post(url).json(&body).send().await {
+            Ok(response) if response.status().is_success() => return Ok(()),
+            Ok(response) => errors.push(format!("{url}: HTTP {}", response.status())),
+            Err(error) => errors.push(format!("{url}: {error}")),
+        }
     }
-    Ok(())
+    Err(format!("desktop telemetry delivery failed: {}", errors.join("; ")))
 }
 
 #[cfg(test)]

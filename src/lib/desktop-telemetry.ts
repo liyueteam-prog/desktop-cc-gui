@@ -4,6 +4,8 @@ import { isWeb } from "./transport";
 const INSTALL_ID_KEY = "ruyuan.desktop.install-id.v1";
 const FIRST_OPEN_KEY = "ruyuan.desktop.first-open-sent.v1";
 const HEARTBEAT_MS = 60_000;
+const RETRY_COUNT = 3;
+const RETRY_DELAY_MS = 1500;
 const IDLE_AFTER_MS = 5 * 60_000;
 const INSTALL_MARKER = Symbol.for("ruyuan.desktop.telemetry.installed");
 
@@ -77,13 +79,29 @@ export function installDesktopTelemetry(): void {
     );
   };
 
+  const sendWithRetry = async (eventName: DesktopEvent, forcedState?: DesktopState) => {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < RETRY_COUNT; attempt += 1) {
+      try {
+        await send(eventName, forcedState);
+        return;
+      } catch (error) {
+        lastError = error;
+        if (attempt + 1 < RETRY_COUNT) {
+          await new Promise((resolve) => window.setTimeout(resolve, RETRY_DELAY_MS));
+        }
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "delivery failed"));
+  };
+
   const firstOpen = window.localStorage.getItem(FIRST_OPEN_KEY) !== "1";
   if (firstOpen) {
-    void send("app_first_open")
+    void sendWithRetry("app_first_open")
       .then(() => window.localStorage.setItem(FIRST_OPEN_KEY, "1"))
       .catch(logDeliveryFailure);
   } else {
-    void send("app_open").catch(logDeliveryFailure);
+    void sendWithRetry("app_open").catch(logDeliveryFailure);
   }
 
   const noteInteraction = () => {
@@ -94,13 +112,13 @@ export function installDesktopTelemetry(): void {
   }
 
   const timer = window.setInterval(() => {
-    void send("heartbeat").catch(logDeliveryFailure);
+    void sendWithRetry("heartbeat").catch(logDeliveryFailure);
   }, HEARTBEAT_MS);
   const close = () => {
     if (closing) return;
     closing = true;
     window.clearInterval(timer);
-    void send("app_close", "closed").catch(logDeliveryFailure);
+    void sendWithRetry("app_close", "closed").catch(logDeliveryFailure);
   };
   window.addEventListener("pagehide", close, { once: true });
   window.addEventListener("beforeunload", close, { once: true });
