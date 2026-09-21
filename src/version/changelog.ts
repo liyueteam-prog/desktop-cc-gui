@@ -18,6 +18,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_DATA: ChangelogEntry[] = [
   {
+    version: "1.0.8",
+    date: "2026-09-21",
+    content: {
+      zh: `🐛 修复
+- 修复 Windows 客户端填写 API Key 后 Codex 无法连接的问题
+- 适配新版 Codex CLI，渠道协议从已废弃的 chat 自动升级为 responses
+- 旧版已保存的渠道无需重新填写，启动时自动兼容
+- 新建如愿AI Codex 渠道默认使用已验证可用的 gpt-5.6-sol 模型`,
+      en: `🐛 Fixes
+- Fixed Codex failing to connect after entering an API key on Windows
+- Updated provider transport from the removed chat wire API to Responses
+- Previously saved channels are upgraded automatically
+- New RuYuanAI Codex channels default to the verified gpt-5.6-sol model`,
+    },
+  },
+  {
     version: "1.0.7",
     date: "2026-09-19",
     content: {

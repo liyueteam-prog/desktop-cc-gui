@@ -29,8 +29,8 @@ export interface ProviderPreset {
   /** claude: extra env merged into the JSON config on preset pick —
    *  ANTHROPIC_DEFAULT_<TIER>_MODEL slots plus per-provider tuning vars. */
   env?: Record<string, string>;
-  /** codex: wire_api for the generated config.toml (default "chat" — the
-   *  relays below are chat-completions compatible). */
+  /** codex: wire_api for the generated config.toml (default "responses" — current Codex CLI versions no longer accept
+   *  wire_api="chat"). */
   wireApi?: "responses" | "chat";
 }
 
@@ -336,17 +336,17 @@ export const PRESETS: Partial<Record<EngineId, ProviderPreset[]>> = {
     { name: "xAI Official", baseUrl: "https://api.x.ai/v1", model: "grok-build", iconSrc: xaiIcon, iconClassName: DARK_MONO_ICON_CLASS },
   ],
   codex: [
-    { name: "如愿AI", baseUrl: RUYUAN_OPENAI_BASE_URL, model: "claude-sonnet-4-6", iconSrc: ruyuanIcon, wireApi: "chat" },
-    { name: "Zhipu GLM", baseUrl: "https://open.bigmodel.cn/api/coding/paas/v4", model: "glm-5.2", iconSrc: zhipuIcon, wireApi: "chat" },
-    { name: "Kimi", baseUrl: "https://api.moonshot.cn/v1", model: "kimi-k3", iconSrc: kimiIcon, iconClassName: DARK_MONO_ICON_CLASS, wireApi: "chat" },
-    { name: "Kimi Coding", baseUrl: "https://api.kimi.com/coding/v1", model: "kimi-k3", iconSrc: kimiIcon, iconClassName: DARK_MONO_ICON_CLASS, wireApi: "chat" },
-    { name: "DeepSeek", baseUrl: "https://api.deepseek.com", model: "deepseek-v4-flash", iconSrc: deepseekIcon, wireApi: "chat" },
-    { name: "MiniMax", baseUrl: "https://api.minimaxi.com/v1", model: "MiniMax-M3", iconSrc: minimaxIcon, wireApi: "chat" },
-    { name: "Xiaomi MiMo", baseUrl: "https://api.xiaomimimo.com/v1", model: "mimo-v2.5-pro", iconSrc: xiaomimimoIcon, iconClassName: DARK_MONO_ICON_CLASS, wireApi: "chat" },
-    { name: "Bailian Coding", baseUrl: "https://coding.dashscope.aliyuncs.com/v1", model: "qwen3-coder-plus", iconSrc: bailianIcon, wireApi: "chat" },
-    { name: "LongCat", baseUrl: "https://api.longcat.chat/openai/v1", model: "LongCat-2.0", iconSrc: longcatIcon, wireApi: "chat" },
-    { name: "OpenCode Go", baseUrl: "https://opencode.ai/zen/go/v1", model: "glm-5.2", iconSrc: opencodeIcon, iconClassName: DARK_MONO_ICON_CLASS, wireApi: "chat" },
-    { name: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1", model: "", iconSrc: openrouterIcon, wireApi: "chat" },
+    { name: "如愿AI", baseUrl: RUYUAN_OPENAI_BASE_URL, model: "gpt-5.6-sol", iconSrc: ruyuanIcon, wireApi: "responses" },
+    { name: "Zhipu GLM", baseUrl: "https://open.bigmodel.cn/api/coding/paas/v4", model: "glm-5.2", iconSrc: zhipuIcon, wireApi: "responses" },
+    { name: "Kimi", baseUrl: "https://api.moonshot.cn/v1", model: "kimi-k3", iconSrc: kimiIcon, iconClassName: DARK_MONO_ICON_CLASS, wireApi: "responses" },
+    { name: "Kimi Coding", baseUrl: "https://api.kimi.com/coding/v1", model: "kimi-k3", iconSrc: kimiIcon, iconClassName: DARK_MONO_ICON_CLASS, wireApi: "responses" },
+    { name: "DeepSeek", baseUrl: "https://api.deepseek.com", model: "deepseek-v4-flash", iconSrc: deepseekIcon, wireApi: "responses" },
+    { name: "MiniMax", baseUrl: "https://api.minimaxi.com/v1", model: "MiniMax-M3", iconSrc: minimaxIcon, wireApi: "responses" },
+    { name: "Xiaomi MiMo", baseUrl: "https://api.xiaomimimo.com/v1", model: "mimo-v2.5-pro", iconSrc: xiaomimimoIcon, iconClassName: DARK_MONO_ICON_CLASS, wireApi: "responses" },
+    { name: "Bailian Coding", baseUrl: "https://coding.dashscope.aliyuncs.com/v1", model: "qwen3-coder-plus", iconSrc: bailianIcon, wireApi: "responses" },
+    { name: "LongCat", baseUrl: "https://api.longcat.chat/openai/v1", model: "LongCat-2.0", iconSrc: longcatIcon, wireApi: "responses" },
+    { name: "OpenCode Go", baseUrl: "https://opencode.ai/zen/go/v1", model: "glm-5.2", iconSrc: opencodeIcon, iconClassName: DARK_MONO_ICON_CLASS, wireApi: "responses" },
+    { name: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1", model: "", iconSrc: openrouterIcon, wireApi: "responses" },
   ],
 };
 

@@ -75,7 +75,7 @@ function initialForm(
         ? {
             name: "如愿AI",
             baseUrl: RUYUAN_OPENAI_BASE_URL,
-            model: "claude-sonnet-4-6",
+            model: "gpt-5.6-sol",
           }
         : {}),
       configToml: base.configToml.trim()
@@ -85,13 +85,13 @@ function initialForm(
               "ccgui",
               base.baseUrl.trim() || "https://api.example.com/v1",
               base.model.trim() || "gpt-5.1-codex",
-              "chat",
+              "responses",
             )
           : buildCodexConfigToml(
               "如愿AI",
               RUYUAN_OPENAI_BASE_URL,
-              "claude-sonnet-4-6",
-              "chat",
+              "gpt-5.6-sol",
+              "responses",
             ),
       name: initial ? base.name : base.name || "如愿AI",
       authJson: base.authJson.trim() ? base.authJson : DEFAULT_CODEX_AUTH_JSON,
@@ -266,7 +266,7 @@ export function useProviderForm({
           preset.name,
           preset.baseUrl,
           preset.model || "gpt-5.1-codex",
-          preset.wireApi ?? "chat",
+          preset.wireApi ?? "responses",
         ),
       }));
     } else {
@@ -420,8 +420,8 @@ export function useProviderForm({
           configToml: buildCodexConfigToml(
             value.name.trim(),
             value.baseUrl.trim(),
-            value.model.trim() || "claude-sonnet-4-6",
-            "chat",
+            value.model.trim() || "gpt-5.6-sol",
+            "responses",
           ),
           authJson: JSON.stringify({ OPENAI_API_KEY: value.apiKey.trim() }, null, 2),
         });

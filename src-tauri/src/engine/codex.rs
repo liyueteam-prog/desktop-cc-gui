@@ -93,6 +93,12 @@ pub(super) fn apply_channel(
             let table = table
                 .as_table_mut()
                 .ok_or("Codex channel provider must be a table")?;
+            // Codex CLI 0.115+ rejects the legacy `wire_api = "chat"`
+            // before making any network request. RuYuanAI exposes the Responses
+            // endpoint, so transparently upgrade previously saved channels.
+            if table.get("wire_api").and_then(Toml::as_str) == Some("chat") {
+                table.insert("wire_api".into(), Toml::String("responses".into()));
+            }
             if let Some(token) = table.remove("experimental_bearer_token") {
                 let token = token
                     .as_str()
@@ -527,6 +533,20 @@ mod tests {
                 .get_args()
                 .any(|s| s.to_string_lossy().contains("test-channel-secret")));
         }
+    }
+
+    #[test]
+    fn legacy_chat_wire_api_is_upgraded_to_responses() {
+        let provider = serde_json::json!({"settingsConfig": {
+            "auth": {"OPENAI_API_KEY":"test-channel-secret"},
+            "config": "model_provider = \"custom\"\nmodel = \"gpt-6-astra\"\n[model_providers.custom]\nname = \"如愿AI\"\nbase_url = \"https://www.dayueai.fun/v1\"\nwire_api = \"chat\"\nrequires_openai_auth = true\n"
+        }});
+        let command = channel_command(&provider, &base_req());
+        let config = overrides(&command);
+        assert_eq!(
+            config["model_providers"]["custom"]["wire_api"].as_str(),
+            Some("responses")
+        );
     }
 
     #[test]
