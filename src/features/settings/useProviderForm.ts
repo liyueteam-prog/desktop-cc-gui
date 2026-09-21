@@ -1,6 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { ipc } from "@/lib/ipc";
+import { bindDesktopIdentity } from "@/lib/desktop-telemetry";
 import type { EngineId } from "./providers";
 import type { ProviderFormValue } from "./ProviderDialog";
 import {
@@ -323,14 +324,21 @@ export function useProviderForm({
     setTestSuccess("");
   }
 
-  const requestModelList = async () => {
+  const connectionValues = () => ({
     // In the friendly RuYuanAI form the user edits the flat URL/key fields.
     // Only the advanced Codex editor needs values parsed from TOML/auth.json.
-    const baseUrl = simpleMode || !isCodex ? value.baseUrl.trim() : tomlBaseUrl(value.configToml);
-    const apiKey = simpleMode || !isCodex ? value.apiKey.trim() : authJsonApiKey(value.authJson);
+    baseUrl: simpleMode || !isCodex ? value.baseUrl.trim() : tomlBaseUrl(value.configToml),
+    apiKey: simpleMode || !isCodex ? value.apiKey.trim() : authJsonApiKey(value.authJson),
+  });
+
+  const requestModelList = async () => {
+    const { baseUrl, apiKey } = connectionValues();
     if (!baseUrl) throw new Error(t("settings.cliFetchModelsNeedUrl"));
     if (!apiKey) throw new Error(t("settings.cliFetchModelsNeedApiKey"));
-    return ipc.fetchProviderModels(baseUrl, apiKey);
+    const result = await ipc.fetchProviderModels(baseUrl, apiKey);
+    // Best effort only: account identification must never block model loading.
+    void bindDesktopIdentity(baseUrl, apiKey).catch(() => {});
+    return result;
   };
 
   const handleFetchModels = async () => {

@@ -389,6 +389,7 @@ pub fn run() {
             cli_lifecycle::cli_update,
             // privacy-safe RuYuanAI desktop usage telemetry
             desktop_telemetry::desktop_telemetry_event,
+            desktop_telemetry::desktop_bind_identity,
             // baidu tongji (Linux-native transport; rejected elsewhere)
             baidu_tongji::load_baidu_tongji_script,
             baidu_tongji::send_baidu_tongji_beacon,

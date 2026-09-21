@@ -27,6 +27,34 @@ function installId(): string {
   return created;
 }
 
+function isRuYuanHttpsUrl(baseUrl: string): boolean {
+  try {
+    const url = new URL(baseUrl);
+    const host = url.hostname.toLowerCase().replace(/\.$/, "");
+    return url.protocol === "https:" && (host === "dayueai.fun" || host.endsWith(".dayueai.fun"));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Associates this random installation ID with the account owning a RuYuanAI
+ * API key. The key is sent only through the native HTTPS command for immediate
+ * verification; it is never written to telemetry storage or local logs.
+ */
+export async function bindDesktopIdentity(baseUrl: string, apiKey: string): Promise<void> {
+  const normalizedUrl = baseUrl.trim();
+  const normalizedKey = apiKey.trim();
+  if (isWeb || !import.meta.env.PROD || !isRuYuanHttpsUrl(normalizedUrl) || !normalizedKey) return;
+  await invoke("desktop_bind_identity", {
+    payload: {
+      installId: installId(),
+      baseUrl: normalizedUrl,
+      apiKey: normalizedKey,
+    },
+  });
+}
+
 function stateFrom(lastInteractionAt: number): DesktopState {
   if (document.visibilityState !== "visible" || !document.hasFocus()) return "background";
   return Date.now() - lastInteractionAt >= IDLE_AFTER_MS ? "idle" : "active";

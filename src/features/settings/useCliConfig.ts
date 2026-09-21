@@ -22,6 +22,8 @@ import {
 } from "./providers";
 import type { ProviderFormValue } from "./ProviderDialog";
 import { errorText } from "@/lib/errors";
+import { bindDesktopIdentity } from "@/lib/desktop-telemetry";
+import { authJsonApiKey, tomlBaseUrl } from "./providerPresets";
 /** Add (no entry) or edit (with entry) dialog state. */
 type DialogState = { entry?: ProviderEntry } | null;
 
@@ -192,7 +194,11 @@ export function useCliConfig(engine: EngineId): CliConfigState {
     }
     const id = dialog?.entry?.id ?? newId();
     setDialog(null);
-    void mutate(() => ipc.upsertProvider(engine, id, next));
+    void mutate(() => ipc.upsertProvider(engine, id, next)).then(() => {
+      const baseUrl = value.baseUrl.trim() || (engine === "codex" ? tomlBaseUrl(value.configToml) : "");
+      const apiKey = value.apiKey.trim() || (engine === "codex" ? authJsonApiKey(value.authJson) : "");
+      if (baseUrl && apiKey) void bindDesktopIdentity(baseUrl, apiKey).catch(() => {});
+    });
   };
 
   const confirmDelete = () => {
