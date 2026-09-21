@@ -18,6 +18,26 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_DATA: ChangelogEntry[] = [
   {
+    version: "1.0.9",
+    date: "2026-09-21",
+    content: {
+      zh: `✨ 新功能
+- 新增匿名桌面端使用统计，支持每日启动、活跃、待机与后台时长
+- 按随机安装 ID 查看 Windows / macOS、架构和版本分布
+- 官网下载按钮接入下载次数统计
+
+🔒 隐私
+- 不采集 API Key、对话内容、本机文件、文件路径或硬件序列号`,
+      en: `✨ Features
+- Added privacy-safe desktop analytics for daily launches, active, idle, and background time
+- Added anonymous install-ID breakdown by Windows / macOS, architecture, and version
+- Added download counting for the official client page
+
+🔒 Privacy
+- Never collects API keys, conversations, local files, file paths, or hardware serial numbers`,
+    },
+  },
+  {
     version: "1.0.8",
     date: "2026-09-21",
     content: {

@@ -6,6 +6,7 @@ pub mod cli_lifecycle;
 pub mod config;
 pub mod db;
 pub mod dsh_host;
+pub mod desktop_telemetry;
 pub mod engine;
 pub mod event_sink;
 pub mod files;
@@ -386,6 +387,8 @@ pub fn run() {
             cli_lifecycle::cli_version_status,
             cli_lifecycle::cli_update_plan,
             cli_lifecycle::cli_update,
+            // privacy-safe RuYuanAI desktop usage telemetry
+            desktop_telemetry::desktop_telemetry_event,
             // baidu tongji (Linux-native transport; rejected elsewhere)
             baidu_tongji::load_baidu_tongji_script,
             baidu_tongji::send_baidu_tongji_beacon,

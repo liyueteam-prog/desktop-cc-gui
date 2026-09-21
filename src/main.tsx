@@ -42,3 +42,14 @@ window.setTimeout(() => {
       );
     });
 }, 3000);
+
+window.setTimeout(() => {
+  void import("./lib/desktop-telemetry")
+    .then(({ installDesktopTelemetry }) => installDesktopTelemetry())
+    .catch((error) => {
+      console.warn(
+        "[analytics] deferred desktop telemetry install failed",
+        error instanceof Error ? error.message : String(error),
+      );
+    });
+}, 4500);
